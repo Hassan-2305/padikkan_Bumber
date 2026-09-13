@@ -126,23 +126,85 @@
     tone({ freq: 120, type: 'sine', dur: 0.1, gain: gain * 0.9, slide: 52, at, decay: 0.06 });
   }
 
+  /* ------------------------------------------------------- user sound pack
+     Clips the user supplied themselves, kept in chrome.storage.local as
+     base64 and played through WebAudio rather than an <audio> element, so a
+     host page's media-src CSP cannot silence them. */
+  const CLIP_KEY = 'pb_clips';
+  const SLOTS = ['block', 'spin', 'win', 'bumper', 'lose', 'police', 'blade', 'coin'];
+  let clips = null;          // slot -> base64
+  let buffers = {};          // slot -> decoded AudioBuffer
+
+  function b64ToBytes(b64) {
+    const bin = atob(String(b64).replace(/^data:[^,]*,/, ''));
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  function loadClips() {
+    if (clips) return;
+    clips = {};
+    try {
+      chrome.storage.local.get(CLIP_KEY, (got) => {
+        void chrome.runtime.lastError;
+        clips = (got && got[CLIP_KEY]) || {};
+      });
+      chrome.storage.onChanged.addListener((ch, area) => {
+        if (area === 'local' && ch[CLIP_KEY]) { clips = ch[CLIP_KEY].newValue || {}; buffers = {}; }
+      });
+    } catch { /* no extension APIs here (tests, welcome page) */ }
+  }
+  try { loadClips(); } catch { /* ignore */ }
+
+  /* Returns true if a user clip handled this slot. */
+  function playClip(slot) {
+    if (!enabled || !clips || !clips[slot]) return false;
+    const a = ctx();
+    if (!a) return false;
+    const go = (buf) => {
+      const src = a.createBufferSource();
+      const g = a.createGain();
+      g.gain.value = 0.85;
+      src.buffer = buf;
+      src.connect(g).connect(a.destination);
+      src.start();
+    };
+    if (buffers[slot]) { go(buffers[slot]); return true; }
+    try {
+      const bytes = b64ToBytes(clips[slot]);
+      a.decodeAudioData(bytes.buffer, (buf) => { buffers[slot] = buf; go(buf); }, () => {});
+      return true;
+    } catch { return false; }
+  }
+
   const sound = {
     set enabled(v) { enabled = !!v; },
     get enabled() { return enabled; },
+    SLOTS,
+    hasClip(slot) { return !!(clips && clips[slot]); },
+    playClip,
 
-    coin() { tone({ freq: 1180, type: 'triangle', dur: 0.05, gain: 0.045 });
+    coin() { if (playClip('coin')) return;
+             tone({ freq: 1180, type: 'triangle', dur: 0.05, gain: 0.045 });
              tone({ freq: 1760, type: 'triangle', dur: 0.07, gain: 0.035, at: 0.05 }); },
 
     tick() { tone({ freq: 900, type: 'square', dur: 0.012, gain: 0.014 }); },
 
-    spin() { for (let i = 0; i < 22; i++) tone({ freq: 620 + (i % 3) * 120, type: 'square', dur: 0.01, gain: 0.012, at: i * 0.055 }); },
+    spin() { if (playClip('spin')) return;
+             for (let i = 0; i < 22; i++) tone({ freq: 620 + (i % 3) * 120, type: 'square', dur: 0.01, gain: 0.012, at: i * 0.055 }); },
 
     stamp() { thump(0, 0.14); },
 
-    lose() { thump(0, 0.1);
+    block() { if (playClip('block')) return; thump(0, 0.18);
+              tone({ freq: 190, type: 'sawtooth', dur: 0.3, gain: 0.05, slide: 70, at: 0.04 }); },
+
+    lose() { if (playClip('lose')) return;
+             thump(0, 0.1);
              tone({ freq: 320, type: 'sawtooth', dur: 0.24, gain: 0.045, slide: 110, at: 0.05 }); },
 
     win(big) {
+      if (playClip(big ? 'bumper' : 'win') || (big && playClip('win'))) return;
       const notes = big ? [523, 659, 784, 1047, 1319] : [523, 659, 784];
       notes.forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.13, gain: 0.06, at: i * 0.085 }));
       thump(0, 0.1);
@@ -150,12 +212,14 @@
     },
 
     siren() {
+      if (playClip('police')) return;
       for (let i = 0; i < 4; i++) {
         tone({ freq: 720, type: 'sawtooth', dur: 0.26, gain: 0.05, slide: 1180, at: i * 0.3 });
       }
     },
 
-    knock() { thump(0, 0.16); thump(0.22, 0.16); thump(0.42, 0.16); }
+    knock() { if (playClip('blade')) return;
+              thump(0, 0.16); thump(0.22, 0.16); thump(0.42, 0.16); }
   };
 
   globalThis.PBFX = { confetti, sound };
