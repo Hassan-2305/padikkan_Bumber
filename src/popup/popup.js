@@ -16,6 +16,7 @@
     bladeNote: $('[data-blade-note]'), bladeActions: $('[data-blade-actions]'),
     stats: $('[data-stats]'), history: $('[data-history]'),
     settings: $('[data-settings]'), cats: $('[data-cats]'), extras: $('[data-extras]'),
+    peek: $('[data-peek]'), clips: $('[data-clips]'),
     custom: $('[data-custom]'), customList: $('[data-customlist]'), allowList: $('[data-allowlist]')
   };
 
@@ -173,8 +174,8 @@
     for (const h of (s.history || []).slice(0, 8)) {
       const p = PB.PRIZES.find((x) => x.id === h.prize);
       const c = document.createElement('span');
-      c.className = 'chip' + (h.minutes > 0 ? ' is-win' : h.prize === 'police' ? ' is-bad' : '');
-      c.textContent = h.minutes > 0 ? `${h.serial} · ${h.minutes}m` : `${h.serial} · ${p && p.id === 'police' ? 'റെയ്ഡ്' : '—'}`;
+      c.className = 'chip' + (h.seconds > 0 ? ' is-win' : h.prize === 'police' ? ' is-bad' : '');
+      c.textContent = h.seconds > 0 ? `${h.serial} · ${h.seconds}s` : `${h.serial} · ${p && p.id === 'police' ? 'റെയ്ഡ്' : '—'}`;
       el.history.append(c);
     }
   }
@@ -232,7 +233,7 @@
     const p = r.prize;
     if (r.won) {
       el.verdict.className = 'verdict is-win';
-      el.verdict.innerHTML = `<b>${p.ml}</b> — ${p.minutes} മിനിറ്റ് പഠിക്കാം.`;
+      el.verdict.innerHTML = `<b>${p.ml}</b> — ${p.seconds} സെക്കൻഡ് പഠിക്കാം.`;
       PBFX.sound.win(p.id === 'bumper' || p.id === 'first');
       toast(p.ml + ' ' + p.note, 'win');
     } else if (p.id === 'police') {
@@ -283,8 +284,15 @@
       toggle('കോളേജ് ഡൊമെയ്‌നുകൾ', '.ac.in, .edu, .ac.uk തുടങ്ങിയവ', s.settings.blockAcademicTlds !== false,
         (v) => patch({ blockAcademicTlds: v })),
       toggle('ശബ്ദം', 'നറുക്കെടുപ്പിന്റെ ശബ്ദങ്ങൾ', s.settings.sound !== false,
-        (v) => patch({ sound: v }))
+        (v) => patch({ sound: v })),
+      toggle('മീം മോഡ്', 'ഉറക്കെയുള്ള ഡയലോഗുകളും പ്രതികരണങ്ങളും', s.settings.memeMode !== false,
+        (v) => patch({ memeMode: v })),
+      toggle('ചുരണ്ടൽ', 'ഫലം അറിയാൻ ടിക്കറ്റ് ചുരണ്ടണം', s.settings.scratch !== false,
+        (v) => patch({ scratch: v }))
     );
+
+    paintPeek();
+    paintClips();
 
     chips(el.customList, s.settings.customSites, async (host) => {
       await patch({ customSites: s.settings.customSites.filter((h) => h !== host) });
@@ -292,6 +300,96 @@
     chips(el.allowList, s.settings.allowlist, async (host) => {
       await patch({ allowlist: s.settings.allowlist.filter((h) => h !== host) });
     });
+  }
+
+  /* How many seconds of the page you get before the shutter drops. */
+  function paintPeek() {
+    if (!el.peek) return;
+    const cur = Number(s.settings.peekSeconds) || PB.ECONOMY.PEEK_SECONDS;
+    el.peek.innerHTML = `
+      <div class="row">
+        <b>ഒളിഞ്ഞുനോട്ട സമയം</b>
+        <span class="val"><span data-peekv>${cur}</span> സെക്കൻഡ്</span>
+      </div>
+      <input type="range" data-peekr min="${PB.ECONOMY.PEEK_MIN}" max="${PB.ECONOMY.PEEK_MAX}"
+             step="1" value="${cur}">
+      <p class="hint">ബ്ലോക്ക് ചെയ്യുന്നതിന് മുൻപ് പേജ് ഇത്ര സെക്കൻഡ് കാണാം.</p>`;
+    const r = el.peek.querySelector('[data-peekr]');
+    const v = el.peek.querySelector('[data-peekv]');
+    r.addEventListener('input', () => { v.textContent = r.value; });
+    r.addEventListener('change', () => patch({ peekSeconds: Number(r.value) }));
+  }
+
+  const CLIP_LABELS = {
+    block: 'ബ്ലോക്ക് ചെയ്യുമ്പോൾ',
+    spin: 'റീൽ കറങ്ങുമ്പോൾ',
+    win: 'സമ്മാനം കിട്ടുമ്പോൾ',
+    bumper: 'ബമ്പർ അടിക്കുമ്പോൾ',
+    lose: 'തോൽക്കുമ്പോൾ',
+    police: 'പൊലീസ് റെയ്ഡ്',
+    blade: 'ബ്ലേഡ് വരുമ്പോൾ',
+    coin: 'കോയിൻ കിട്ടുമ്പോൾ'
+  };
+  const CLIP_KEY = 'pb_clips';
+  const MAX_CLIP = 300 * 1024;
+
+  const readClips = () => new Promise((res) => {
+    try { chrome.storage.local.get(CLIP_KEY, (g) => res((g && g[CLIP_KEY]) || {})); }
+    catch { res({}); }
+  });
+  const writeClips = (c) => new Promise((res) => {
+    try { chrome.storage.local.set({ [CLIP_KEY]: c }, () => res()); } catch { res(); }
+  });
+
+  async function paintClips() {
+    if (!el.clips) return;
+    const have = await readClips();
+    el.clips.innerHTML = '';
+    for (const slot of PBFX.sound.SLOTS) {
+      const row = document.createElement('div');
+      row.className = 'clip' + (have[slot] ? ' is-set' : '');
+      row.setAttribute('data-clip', slot);
+      row.innerHTML = `
+        <span class="clip__n"></span>
+        <span class="clip__s" data-state></span>
+        <button class="mini" data-pick type="button">ഫയൽ</button>
+        <button class="mini" data-play type="button" ${have[slot] ? '' : 'disabled'}>▶</button>
+        <button class="mini is-bad" data-clear type="button" ${have[slot] ? '' : 'disabled'}>✕</button>
+        <input type="file" accept="audio/*" hidden data-file>`;
+      row.querySelector('.clip__n').textContent = CLIP_LABELS[slot] || slot;
+      row.querySelector('[data-state]').textContent = have[slot] ? 'സെറ്റ് ചെയ്തു' : '—';
+
+      const file = row.querySelector('[data-file]');
+      row.querySelector('[data-pick]').addEventListener('click', () => file.click());
+      file.addEventListener('change', async () => {
+        const f = file.files && file.files[0];
+        if (!f) return;
+        if (f.size > MAX_CLIP) { toast(`ഫയൽ വലുതാണ് (${Math.round(f.size / 1024)}KB). 300KB വരെ മതി.`); return; }
+        const b64 = await new Promise((res, rej) => {
+          const fr = new FileReader();
+          fr.onload = () => res(String(fr.result).split(',')[1] || '');
+          fr.onerror = () => rej(new Error('read'));
+          fr.readAsDataURL(f);
+        }).catch(() => null);
+        if (!b64) { toast('ഫയൽ വായിക്കാൻ പറ്റിയില്ല.'); return; }
+        const next = await readClips();
+        next[slot] = b64;
+        await writeClips(next);
+        toast('ക്ലിപ്പ് ചേർത്തു.');
+        paintClips();
+      });
+      row.querySelector('[data-play]').addEventListener('click', () => {
+        if (!PBFX.sound.playClip(slot)) toast('പ്ലേ ചെയ്യാൻ പറ്റിയില്ല.');
+      });
+      row.querySelector('[data-clear]').addEventListener('click', async () => {
+        const next = await readClips();
+        delete next[slot];
+        await writeClips(next);
+        toast('ക്ലിപ്പ് നീക്കി.');
+        paintClips();
+      });
+      el.clips.append(row);
+    }
   }
 
   function chips(host, list, onRemove) {
