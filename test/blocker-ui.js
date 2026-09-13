@@ -45,41 +45,72 @@ function makeCtx(back, doc, href, cssDelay = 0) {
   return ctx;
 }
 
+const PEEK = 2;
+
 (async () => {
   const back = boot();
+  await back.send('settings', { patch: { peekSeconds: PEEK } });
 
-  console.log('\nstudy page, no access');
+  console.log('\npeek before the shutter');
   const doc = makeDocument();
   const video = doc.createElement('video');
   video.paused = false;
   video.pause = function () { this.paused = true; };
   doc.body.appendChild(video);
 
-  const ctx = makeCtx(back, doc, 'https://arxiv.org/abs/2401.00001', 250);
-  await sleep(60);                                  // stylesheet still in flight
+  const ctx = makeCtx(back, doc, 'https://arxiv.org/abs/2401.00001', 40);
+  await sleep(120);
 
-  const host = doc.querySelector('#padikkan-bumper-root');
-  ok('overlay host injected into the document element', !!host);
-  ok('page blacked out before the stylesheet arrives',
-     host.style.getPropertyValue('background') === '#150A0D');
-  ok('nothing readable behind it', host.style.getPropertyValue('inset') === '0'
-     && host.style.getPropertyValue('z-index') === '2147483647');
-  ok('overlay not drawn yet', !host.__shadow.querySelector('.pb-title'));
+  let host = doc.querySelector('#padikkan-bumper-root');
+  ok('something mounts straight away', !!host);
+  ok('but the page is NOT covered yet',
+     host.style.getPropertyValue('inset') === 'auto');
+  ok('the page is still readable behind it', !host.__shadow.querySelector('.pb-title'));
+  ok('scrolling still works during the peek',
+     doc.documentElement.style.getPropertyValue('overflow') !== 'hidden');
+  ok('the video keeps playing during the peek', video.paused === false);
+  ok('a countdown is showing', !!host.__shadow.querySelector('[data-peek]'));
+  ok('it counts the configured seconds',
+     host.__shadow.querySelector('[data-n]').textContent === String(PEEK));
+  ok('it names the site', host.__shadow.querySelector('[data-peek] [data-site]').textContent.includes('arxiv.org'));
+  ok('the countdown ticks down', await (async () => {
+    const before = host.__shadow.querySelector('[data-n]').textContent;
+    await sleep(1100);
+    return host.__shadow.querySelector('[data-n]').textContent !== before;
+  })());
 
-  await sleep(400);                                 // stylesheet lands
-  ok('host goes transparent once the ticket is styled',
-     host.style.getPropertyValue('background') === 'transparent');
+  console.log('\nskipping the peek');
+  {
+    // a second document, so we get a fresh peek to skip
+    const d = makeDocument();
+    makeCtx(back, d, 'https://scholar.google.com/', 10);
+    await sleep(140);
+    const h = d.querySelector('#padikkan-bumper-root');
+    ok('peek showing on the second page', !!h.__shadow.querySelector('[data-peek]'));
+    h.__shadow.querySelector('[data-skip]').click();
+    await sleep(220);
+    const h2 = d.querySelector('#padikkan-bumper-root');
+    ok('skip drops the shutter immediately', !!h2.__shadow.querySelector('.pb-title'));
+    ok('and freezes the page', d.documentElement.style.getPropertyValue('overflow') === 'hidden');
+  }
+
+  console.log('\nshutter drops');
+  const blocksBefore = (await back.send('state')).stats.blocks;
+  await sleep(PEEK * 1000 + 400);
+  host = doc.querySelector('#padikkan-bumper-root');
+  ok('peek widget gone', !host.__shadow.querySelector('[data-peek]'));
+  ok('now the page is covered', host.style.getPropertyValue('inset') === '0');
   const shade = host.__shadow;
-  ok('shadow root created', !!shade);
   ok('stylesheet inlined into the shadow root', shade.querySelector('style').textContent.includes('.pb-ticket'));
   ok('overlay rendered inside', !!shade.querySelector('.pb-title'));
+  ok('it entered as a shutter', shade.querySelector('.pb-root').classList.contains('pb-enter--shutter'));
   ok('site name passed through', shade.querySelector('[data-site]').textContent.includes('arxiv.org'));
   ok('page scrolling frozen',
      doc.documentElement.style.getPropertyValue('overflow') === 'hidden');
   ok('playing media paused', video.paused === true);
   ok('title marked', doc.title.startsWith('പഠിക്കണോ മോനേ? · '));
   const before = doc.title;
-  ok('block counted', (await back.send('state')).stats.blocks === 1);
+  ok('block counted', (await back.send('state')).stats.blocks === blocksBefore + 1);
 
   console.log('\naccess granted elsewhere');
   await back.send('bail');                        // grants 90s
@@ -107,6 +138,10 @@ function makeCtx(back, doc, href, cssDelay = 0) {
   await sleep(1500);                              // the 1.2s guard sweep
   live = doc.querySelector('#padikkan-bumper-root');
   ok('overlay puts itself back', !!live && !!live.__shadow.querySelector('.pb-title'));
+
+  console.log('\nno second peek once you are caught');
+  const seen = doc.querySelector('#padikkan-bumper-root').__shadow;
+  ok('re-block after expiry skips the peek', !seen.querySelector('[data-peek]'));
 
   console.log('\nordinary page');
   const doc2 = makeDocument();

@@ -103,11 +103,19 @@ class Node {
   setAttribute(k, v) {
     this.attributes[k] = String(v);
     if (k === 'class') this.className = v;
+    // boolean content attributes reflect to properties, as in a real element
+    if (k === 'disabled') this.disabled = true;
+    if (k === 'hidden') this.hidden = true;
+    if (k === 'value') this.value = String(v);
     if (k.startsWith('data-')) this.dataset[k.slice(5).replace(/-(\w)/g, (m, c) => c.toUpperCase())] = String(v);
   }
   getAttribute(k) { return this.attributes[k] ?? null; }
   hasAttribute(k) { return k in this.attributes; }
-  removeAttribute(k) { delete this.attributes[k]; }
+  removeAttribute(k) {
+    delete this.attributes[k];
+    if (k === 'disabled') this.disabled = false;
+    if (k === 'hidden') this.hidden = false;
+  }
 
   appendChild(n) {
     if (typeof n === 'string') { this.childNodes.push({ text: n }); return n; }
@@ -165,7 +173,11 @@ class Node {
     this.__shadow = r;
     return r;
   }
-  getContext() { return null; }
+  getContext(kind) {
+    // Only canvases that the test explicitly opts in get a context.
+    if (!this.__ctx2d || kind !== '2d') return null;
+    return this.__ctx2d;
+  }
 
   /* selectors: tag, .class, [attr], and combinations of them */
   matches(sel) {

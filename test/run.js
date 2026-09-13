@@ -168,7 +168,11 @@ async function mine(send, coins) {
   await send('reset');
   r = await send('bail');
   st = await send('state');
-  ok('bail grants 90 seconds', st.accessUntil - Date.now() > 85000 && st.accessUntil - Date.now() <= 90000);
+  const bailMs = PB.ECONOMY.BAIL_SECONDS * 1000;
+  ok('bail grants the configured seconds',
+     st.accessUntil - Date.now() > bailMs - 3000 && st.accessUntil - Date.now() <= bailMs);
+  ok('bail never beats the bumper prize',
+     PB.ECONOMY.BAIL_SECONDS <= PB.PRIZES.find((p) => p.id === 'bumper').seconds);
   ok('bail is charged to blade', st.debt === PB.ECONOMY.BAIL_DEBT);
   ok('bail cannot be repeated', (await send('bail')).ok === false);
   ok('badge shows remaining time', /m$/.test(chrome.log.badge), chrome.log.badge);
@@ -201,9 +205,27 @@ async function mine(send, coins) {
   ok('written to storage', !!chrome.store.pb_state);
   ok('stored shape survives projection', PB.publicState(chrome.store.pb_state).settings.sound === false);
 
+  section('peek delay');
+  await send('settings', { patch: { peekSeconds: 7 } });
+  ok('peek delay is configurable', (await send('state')).settings.peekSeconds === 7);
+  await send('settings', { patch: { peekSeconds: 900 } });
+  ok('absurd peek values are clamped', (await send('state')).settings.peekSeconds === PB.ECONOMY.PEEK_MAX);
+  await send('settings', { patch: { peekSeconds: 'banana' } });
+  ok('junk peek values fall back to the default',
+     (await send('state')).settings.peekSeconds === PB.ECONOMY.PEEK_SECONDS);
+
+  section('prize scale');
+  ok('bumper is the longest prize',
+     PB.PRIZES.every((p) => p.seconds <= PB.PRIZES.find((x) => x.id === 'bumper').seconds));
+  ok('consolation is eight seconds',
+     PB.PRIZES.find((p) => p.id === 'consolation').seconds === 8);
+  ok('every prize is now on a seconds scale',
+     PB.PRIZES.every((p) => p.seconds < 120));
+
   await send('reset');
   st = await send('state');
   ok('reset clears everything', st.coins === 0 && st.debt === 0 && st.stats.plays === 0);
+  ok('reset restores the default peek', st.settings.peekSeconds === PB.ECONOMY.PEEK_SECONDS);
 
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);

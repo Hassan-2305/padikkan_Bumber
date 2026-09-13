@@ -98,7 +98,31 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   ok('settings sheet opens', q('[data-settings]').hidden === false);
   const cats = q('[data-cats]').querySelectorAll('.toggle');
   ok('one toggle per category', cats.length === Object.keys(ctx.PB.CATEGORIES).length);
-  ok('extras rendered', q('[data-extras]').querySelectorAll('.toggle').length === 3);
+  ok('extras rendered', q('[data-extras]').querySelectorAll('.toggle').length === 5);
+  ok('meme mode is offered', q('[data-extras]').textContent.includes('മീം മോഡ്'));
+  ok('scratch mode is offered', q('[data-extras]').textContent.includes('ചുരണ്ടൽ'));
+
+  const slider = q('[data-peekr]');
+  ok('peek slider rendered', !!slider);
+  ok('slider starts at the current value', slider.getAttribute('value') === String(ctx.PB.ECONOMY.PEEK_SECONDS));
+  ok('slider is bounded', slider.getAttribute('min') === String(ctx.PB.ECONOMY.PEEK_MIN)
+     && slider.getAttribute('max') === String(ctx.PB.ECONOMY.PEEK_MAX));
+  slider.value = '9';
+  slider.dispatch('change', {});
+  await sleep(40);
+  ok('moving the slider persists the peek delay',
+     (await back.send('state')).settings.peekSeconds === 9);
+
+  const clipRows = q('[data-clips]').querySelectorAll('[data-clip]');
+  ok('one row per sound slot', clipRows.length === ctx.PBFX.sound.SLOTS.length);
+  ok('every slot starts empty',
+     clipRows.every((r) => r.querySelector('[data-state]').textContent === '—'));
+  ok('play and clear are disabled with no clip',
+     clipRows[0].querySelector('[data-play]').disabled === true
+     && clipRows[0].querySelector('[data-clear]').disabled === true);
+  ok('slots are labelled in Malayalam',
+     clipRows.find((r) => r.getAttribute('data-clip') === 'bumper')
+             .querySelector('.clip__n').textContent.includes('ബമ്പർ'));
 
   const first = cats[0].querySelector('input');
   first.checked = !first.checked;   // the browser flips this before firing change

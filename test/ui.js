@@ -145,6 +145,117 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   chip.destroy();
   ui.destroy();
 
+  console.log('\nscratch card');
+  {
+    // a fresh overlay, so this section does not inherit the earlier one's state
+    await back.send('reset');
+    // the SW clamps each report to 60s, so mine it in realistic chunks
+    for (let i = 0; i < 5; i++) await back.send('earn', { seconds: 60 });
+    const mount2 = doc.createElement('div');
+    doc.body.appendChild(mount2);
+    const ui2 = PBOverlay.create({
+      container: mount2, state: await back.send('state'),
+      siteLabel: 'arxiv.org', onRelease: () => {}
+    });
+    void ui2;
+    const pick = (frag) => mount2.querySelectorAll('.pb-btn').find((b) => b.textContent.includes(frag));
+
+    // give the overlay a canvas that reports a 2d context, so the foil path runs
+    const cv = mount2.querySelector('[data-scratchc]');
+    const calls = [];
+    cv.__ctx2d = {
+      canvas: cv, globalAlpha: 1, globalCompositeOperation: 'source-over',
+      lineWidth: 0, lineCap: '', lineJoin: '', fillStyle: '',
+      createLinearGradient: () => ({ addColorStop() {} }),
+      fillRect: () => calls.push('fillRect'),
+      beginPath: () => calls.push('beginPath'),
+      moveTo() {}, lineTo() {}, stroke: () => calls.push('stroke'),
+      arc() {}, fill: () => calls.push('fill')
+    };
+    cv.getBoundingClientRect = () => ({ width: 600, height: 300, top: 0, left: 0 });
+
+    pick('ടിക്കറ്റ് എടുക്ക്').click();
+    await sleep(80);
+    pick('നറുക്കെടുക്ക്').click();
+    await sleep(150);
+
+    const foil = mount2.querySelector('[data-scratch]');
+    ok('foil covers the ticket while the draw runs', foil.hidden === false);
+    ok('foil was actually painted', calls.includes('fillRect'));
+    ok('it tells you to scratch',
+       mount2.querySelector('[data-scratchhint]').textContent === PB.COPY.scratch.hint);
+
+    await sleep(3600);
+    ok('result stays hidden until you scratch', foil.hidden === false);
+    ok('no verdict yet', !mount2.querySelector('[data-stamp]').classList.contains('is-on'));
+
+    // scratch it
+    cv.dispatch('pointerdown', { clientX: 10, clientY: 10 });
+    for (let i = 0; i < 40; i++) cv.dispatch('pointermove', { clientX: 10 + i * 6, clientY: 40 });
+    cv.dispatch('pointerup', {});
+    await sleep(500);
+    ok('scratching lifts the foil', foil.hidden === true);
+    ok('and the verdict lands', mount2.querySelector('[data-stamp]').classList.contains('is-on'));
+    ok('the ticket resolves one way or the other',
+       mount2.querySelector('[data-ticket]').classList.contains('is-win')
+       || mount2.querySelector('[data-ticket]').classList.contains('is-loss'));
+  }
+
+  console.log('\nnobody gets trapped behind the foil');
+  {
+    await back.send('reset');
+    for (let i = 0; i < 5; i++) await back.send('earn', { seconds: 60 });
+    const m3 = doc.createElement('div');
+    doc.body.appendChild(m3);
+    PBOverlay.create({ container: m3, state: await back.send('state'),
+                       siteLabel: 'arxiv.org', onRelease: () => {} });
+    const pick3 = (f) => m3.querySelectorAll('.pb-btn').find((b) => b.textContent.includes(f));
+    const cv3 = m3.querySelector('[data-scratchc]');
+    cv3.__ctx2d = {
+      canvas: cv3, globalAlpha: 1, globalCompositeOperation: '', lineWidth: 0, lineCap: '', lineJoin: '',
+      fillStyle: '', createLinearGradient: () => ({ addColorStop() {} }), fillRect() {},
+      beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, arc() {}, fill() {}
+    };
+    cv3.getBoundingClientRect = () => ({ width: 600, height: 300, top: 0, left: 0 });
+
+    pick3('ടിക്കറ്റ് എടുക്ക്').click();
+    await sleep(80);
+    pick3('നറുക്കെടുക്ക്').click();
+    await sleep(4000);
+    const foil3 = m3.querySelector('[data-scratch]');
+    ok('foil is still up if you never touch it', foil3.hidden === false);
+    await sleep(9000);                       // past the 12s bail-out
+    ok('it gives up and reveals by itself', foil3.hidden === true);
+    ok('the result is there', m3.querySelector('[data-stamp]').classList.contains('is-on'));
+  }
+
+  console.log('\nscratch can be switched off');
+  {
+    await back.send('reset');
+    for (let i = 0; i < 5; i++) await back.send('earn', { seconds: 60 });
+    await back.send('settings', { patch: { scratch: false } });
+    const m4 = doc.createElement('div');
+    doc.body.appendChild(m4);
+    PBOverlay.create({ container: m4, state: await back.send('state'),
+                       siteLabel: 'arxiv.org', onRelease: () => {} });
+    const pick4 = (f) => m4.querySelectorAll('.pb-btn').find((b) => b.textContent.includes(f));
+    const cv4 = m4.querySelector('[data-scratchc]');
+    cv4.__ctx2d = {
+      canvas: cv4, globalAlpha: 1, globalCompositeOperation: '', lineWidth: 0, lineCap: '', lineJoin: '',
+      fillStyle: '', createLinearGradient: () => ({ addColorStop() {} }), fillRect() {},
+      beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, arc() {}, fill() {}
+    };
+    cv4.getBoundingClientRect = () => ({ width: 600, height: 300, top: 0, left: 0 });
+    pick4('ടിക്കറ്റ് എടുക്ക്').click();
+    await sleep(80);
+    pick4('നറുക്കെടുക്ക്').click();
+    await sleep(3800);
+    ok('no foil when the setting is off', m4.querySelector('[data-scratch]').hidden === true);
+    ok('result appears straight after the spin',
+       m4.querySelector('[data-stamp]').classList.contains('is-on'));
+    await back.send('settings', { patch: { scratch: true } });
+  }
+
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })().catch((e) => { console.error('\nCRASHED:', e); process.exit(1); });
