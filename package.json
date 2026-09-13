@@ -1,0 +1,19 @@
+{
+  "name": "padikkan-bumper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A Chrome extension that will not let you study until you have watched enough Reels.",
+  "scripts": {
+    "test": "node test/all.js"
+  },
+  "keywords": [
+    "chrome-extension",
+    "manifest-v3",
+    "productivity",
+    "malayalam"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
