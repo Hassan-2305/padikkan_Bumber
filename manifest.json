@@ -1,10 +1,35 @@
 {
   "manifest_version": 3,
   "name": "Padikkan Bumper — പഠിക്കാൻ ബംപർ",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "പഠിക്കണോ മോനേ? റീൽസ് കണ്ട് കോയിൻ നേടി, ടിക്കറ്റ് എടുത്ത്, ഭാഗ്യമുണ്ടെങ്കിൽ പഠിക്കാം.",
 
-  "permissions": ["storage", "alarms"],
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  },
+
+  "permissions": ["storage", "alarms", "tabs", "notifications"],
+  "host_permissions": ["<all_urls>"],
+
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*", "file:///*"],
+      "js": [
+        "src/shared/config.js",
+        "src/shared/overlay-ui.js",
+        "src/content/blocker.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["src/content/overlay.css"],
+      "matches": ["<all_urls>"]
+    }
+  ],
 
   "minimum_chrome_version": "102"
 }
