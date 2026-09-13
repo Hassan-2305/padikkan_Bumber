@@ -1,0 +1,19 @@
+# dependencies
+node_modules/
+
+# packaged builds
+*.zip
+*.crx
+*.pem
+dist/
+build/
+
+# logs
+*.log
+npm-debug.log*
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
