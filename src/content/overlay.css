@@ -710,3 +710,139 @@
   }
   .pb-ticker__track { animation: none; }
 }
+
+/* ============================================================ peek widget
+   The few seconds of grace. Sits in the corner; the page stays usable. */
+.pb-peekwrap { position: static; }
+
+.pb-peek {
+  position: fixed;
+  top: 18px; right: 18px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px 10px 10px;
+  border-radius: 16px;
+  background: rgba(21, 10, 13, .92);
+  border: 1px solid rgba(233, 185, 73, .32);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .5);
+  backdrop-filter: blur(10px);
+  color: var(--cream);
+  font-family: var(--ml);
+  pointer-events: auto;
+  animation: pb-peek-in .34s cubic-bezier(.2, .9, .25, 1) both;
+}
+.pb-peek.is-beat { animation: pb-peek-beat .32s ease both; }
+
+.pb-peek__ring { position: relative; width: 48px; height: 48px; flex: 0 0 48px; }
+.pb-peek__ring svg { width: 48px; height: 48px; transform: rotate(-90deg); }
+.pb-peek__trk { fill: none; stroke: rgba(243, 231, 206, .14); stroke-width: 4; }
+.pb-peek__arc {
+  fill: none; stroke: var(--gold); stroke-width: 4; stroke-linecap: round;
+  transition: stroke-dashoffset .1s linear;
+}
+.pb-peek__ring b {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-size: 19px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+}
+.pb-peek__txt { display: grid; gap: 2px; min-width: 0; }
+.pb-peek__txt strong { font-size: 14px; letter-spacing: .01em; }
+.pb-peek__txt span {
+  font-size: 11px; opacity: .62;
+  max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pb-peek__x {
+  all: unset;
+  cursor: pointer;
+  padding: 6px 10px; border-radius: 9px;
+  font-family: var(--ml); font-size: 11px;
+  color: rgba(243, 231, 206, .7);
+  border: 1px solid rgba(243, 231, 206, .18);
+  transition: background .15s, color .15s;
+}
+.pb-peek__x:hover { background: rgba(243, 231, 206, .1); color: var(--cream); }
+
+@keyframes pb-peek-in {
+  from { opacity: 0; transform: translateY(-14px) scale(.94); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes pb-peek-beat {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+/* ========================================================= shutter entrance */
+.pb-enter--shutter .pb-scrim { animation: pb-shutter .42s cubic-bezier(.7, 0, .3, 1) both; }
+.pb-enter--shutter .pb-stage { animation: pb-stage-in .5s cubic-bezier(.2, .9, .25, 1) .16s both; }
+@keyframes pb-shutter {
+  from { transform: translateY(-100%); }
+  to   { transform: none; }
+}
+@keyframes pb-stage-in {
+  from { opacity: 0; transform: translateY(-26px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ============================================================ shout layer */
+.pb-shout {
+  position: fixed; inset: 0;
+  display: grid; place-items: center;
+  pointer-events: none;
+  z-index: 40;
+  font-family: var(--ml);
+  font-size: clamp(30px, 7vw, 74px);
+  font-weight: 800;
+  letter-spacing: -.01em;
+  text-align: center;
+  padding: 0 24px;
+  opacity: 0;
+  color: var(--gold);
+  text-shadow: 0 6px 30px rgba(0, 0, 0, .7);
+}
+.pb-shout.is-on { animation: pb-shout .1s ease both, pb-shout-out .5s ease 1s both; }
+.pb-shout.is-bad { color: var(--red); }
+.pb-shout.is-win { color: var(--gold); }
+@keyframes pb-shout {
+  from { opacity: 0; transform: scale(.7) rotate(-3deg); }
+  to   { opacity: 1; transform: scale(1) rotate(-2deg); }
+}
+@keyframes pb-shout-out { to { opacity: 0; transform: scale(1.15); } }
+
+/* ========================================================== scratch panel */
+.pb-scratch {
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  z-index: 6;
+  cursor: crosshair;
+}
+.pb-scratch canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.pb-scratch__hint {
+  position: absolute; left: 0; right: 0; bottom: 16px;
+  text-align: center;
+  font-family: var(--ml); font-size: 14px; font-weight: 600;
+  color: rgba(21, 10, 13, .72);
+  pointer-events: none;
+  animation: pb-hint-pulse 1.5s ease-in-out infinite;
+}
+.pb-scratch.is-going { animation: pb-scratch-off .3s ease both; }
+@keyframes pb-hint-pulse { 50% { opacity: .45; } }
+@keyframes pb-scratch-off { to { opacity: 0; transform: scale(1.04); } }
+
+/* a bumper win deserves more than a stamp */
+.pb-ticket.is-bumper { animation: pb-bumper 1.1s ease both; }
+@keyframes pb-bumper {
+  0%, 100% { transform: none; }
+  15% { transform: scale(1.035) rotate(-.6deg); }
+  35% { transform: scale(1.02) rotate(.5deg); }
+  60% { transform: scale(1.03) rotate(-.3deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pb-peek, .pb-peek.is-beat,
+  .pb-enter--shutter .pb-scrim, .pb-enter--shutter .pb-stage,
+  .pb-shout.is-on, .pb-ticket.is-bumper, .pb-scratch__hint { animation: none !important; }
+  .pb-shout.is-on { opacity: 1; }
+}

@@ -43,6 +43,7 @@
     <div class="pb-scrim"></div>
     <div class="pb-ornament">${ornament()}</div>
     <canvas class="pb-fx" data-fx></canvas>
+    <div class="pb-shout" data-shout aria-hidden="true"></div>
     <div class="pb-stage">
       <div class="pb-wrap" role="dialog" aria-modal="true" aria-label="പഠിക്കാൻ ബംപർ — നറുക്കെടുപ്പ്">
         <header class="pb-head">
@@ -70,6 +71,10 @@
               <p class="pb-price" data-price></p>
             </div>
             <div class="pb-stamp" data-stamp></div>
+            <div class="pb-scratch" data-scratch hidden>
+              <canvas data-scratchc></canvas>
+              <span class="pb-scratch__hint" data-scratchhint></span>
+            </div>
           </div>
           <aside class="pb-ticket__stub">
             <div class="pb-stat">
@@ -173,7 +178,7 @@
 
   /* ------------------------------------------------------------- component */
 
-  function create({ container, state, siteLabel, onRelease }) {
+  function create({ container, state, siteLabel, onRelease, shutter }) {
     container.classList.add('pb-root');
     container.innerHTML = SKELETON;
 
@@ -185,8 +190,15 @@
       stamp: $('[data-stamp]'), coins: $('[data-coins]'), coinbar: $('[data-coinbar]'),
       tickets: $('[data-tickets]'), debt: $('[data-debt]'), debtWrap: $('[data-debtwrap]'),
       time: $('[data-time]'), timeWrap: $('[data-timewrap]'), slot: $('[data-slot]'),
-      actions: $('[data-actions]'), ticker: $('[data-ticker]'), fx: $('[data-fx]')
+      actions: $('[data-actions]'), ticker: $('[data-ticker]'), fx: $('[data-fx]'),
+      shout: $('[data-shout]'), scratch: $('[data-scratch]'),
+      scratchC: $('[data-scratchc]'), scratchHint: $('[data-scratchhint]')
     };
+    const memes = !state || !state.settings || state.settings.memeMode !== false;
+    if (shutter) {
+      container.classList.add('pb-enter--shutter');
+      setTimeout(() => PBFX.sound.block(), 120);
+    }
 
     let s = state;
     let busy = false;
@@ -347,6 +359,75 @@
       paint();
     }
 
+    /* Big shouted reaction across the screen — the loud bit. */
+    function shout(text, tone) {
+      if (!memes || !refs.shout) return;
+      refs.shout.textContent = text;
+      refs.shout.className = 'pb-shout is-on' + (tone ? ' is-' + tone : '');
+      setTimeout(() => { refs.shout.className = 'pb-shout'; }, 1500);
+    }
+
+    /* Scratch card. Returns a promise that settles when enough is scraped off
+       (or immediately, if there is no 2d context to draw on). */
+    function scratchReveal() {
+      return new Promise((resolve) => {
+        const wrap = refs.scratch, cv = refs.scratchC;
+        const ctx = cv && cv.getContext && cv.getContext('2d');
+        if (!wrap || !ctx || (s.settings && s.settings.scratch === false)) return resolve('auto');
+
+        const box = refs.ticket.getBoundingClientRect();
+        const w = Math.max(200, Math.round(box.width)), h = Math.max(120, Math.round(box.height));
+        cv.width = w; cv.height = h;
+        cv.style.width = w + 'px'; cv.style.height = h + 'px';
+        wrap.hidden = false;
+
+        // the silver panel
+        const g = ctx.createLinearGradient(0, 0, w, h);
+        g.addColorStop(0, '#6E6A63'); g.addColorStop(0.5, '#A9A49A'); g.addColorStop(1, '#6E6A63');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+        ctx.globalAlpha = 0.16; ctx.fillStyle = '#150A0D';
+        for (let i = 0; i < 900; i++) ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+        ctx.globalAlpha = 1;
+        refs.scratchHint.textContent = PB.COPY.scratch.hint;
+
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineWidth = 34; ctx.lineCap = ctx.lineJoin = 'round';
+
+        let down = false, last = null, cleared = 0, done = false;
+        const at = (e) => {
+          const r = cv.getBoundingClientRect();
+          const t = (e.touches && e.touches[0]) || e;
+          return { x: (t.clientX - r.left) * (w / r.width), y: (t.clientY - r.top) * (h / r.height) };
+        };
+        const draw = (pt) => {
+          ctx.beginPath();
+          if (last) { ctx.moveTo(last.x, last.y); ctx.lineTo(pt.x, pt.y); ctx.stroke(); }
+          else { ctx.arc(pt.x, pt.y, 17, 0, 7); ctx.fill(); }
+          last = pt;
+          cleared += 1;
+          if (cleared === 3) PBFX.sound.tick();
+          if (cleared % 14 === 0) PBFX.sound.tick();
+          if (cleared > 26 && !done) finish();
+        };
+        function finish() {
+          done = true;
+          refs.scratchHint.textContent = PB.COPY.scratch.hintDone;
+          wrap.classList.add('is-going');
+          setTimeout(() => { wrap.hidden = true; wrap.classList.remove('is-going'); }, 320);
+          resolve('scratched');
+        }
+        cv.addEventListener('pointerdown', (e) => { down = true; last = null; draw(at(e)); });
+        cv.addEventListener('pointermove', (e) => { if (down) draw(at(e)); });
+        cv.addEventListener('pointerup', () => { down = false; last = null; });
+        cv.addEventListener('pointerleave', () => { down = false; last = null; });
+        cv.addEventListener('mousedown', (e) => { down = true; last = null; draw(at(e)); });
+        cv.addEventListener('mousemove', (e) => { if (down) draw(at(e)); });
+        cv.addEventListener('mouseup', () => { down = false; last = null; });
+        // never trap anyone behind a card they cannot scratch
+        setTimeout(() => { if (!done) finish(); }, 12000);
+      });
+    }
+
     async function draw() {
       if (busy) return;
       busy = true;
@@ -369,7 +450,13 @@
       }
 
       const [winPre, winNum] = r.numbers.winning.split(' ');
-      await spinTo(winNum);
+
+      // Foil goes up first, so the draw happens *behind* it and you have to
+      // scratch to find out. If there is no canvas the foil resolves instantly.
+      const scratched = scratchReveal();
+      const spinning = spinTo(winNum);
+      await Promise.all([spinning, scratched]);
+
       refs.prefix.textContent = winPre;
       refs.prefix.style.opacity = '1';
       refs.ticket.classList.remove('is-spinning');
@@ -381,9 +468,11 @@
         refs.stamp.textContent = 'അടിച്ചു!';
         refs.stamp.classList.add('is-win', 'is-on');
         refs.ticket.classList.add('is-win');
-        refs.verdict.innerHTML = `<b>${p.ml}</b> — ${p.minutes} മിനിറ്റ് പഠിക്കാം`;
+        refs.verdict.innerHTML = `<b>${p.ml}</b> — ${p.seconds} സെക്കൻഡ് പഠിക്കാം`;
         PBFX.sound.win(p.id === 'bumper' || p.id === 'first');
         PBFX.confetti(refs.fx, { count: p.id === 'bumper' ? 260 : 150, y: innerHeight * 0.38 });
+        shout(p.id === 'bumper' ? PB.pick(PB.COPY.bumperLines) : PB.pick(PB.COPY.grantedLines), 'win');
+        if (p.id === 'bumper') refs.ticket.classList.add('is-bumper');
         toast(resultPanel({
           icon: p.id === 'bumper' ? '🏆' : '✅',
           title: p.ml,
@@ -398,6 +487,7 @@
         refs.ticket.classList.add('is-loss');
         refs.verdict.innerHTML = `<b>അയ്യോ പൊലീസ്!</b> ${r.seized} കോയിൻ പിടിച്ചു`;
         PBFX.sound.siren();
+        shout(PB.pick(PB.COPY.policeLines), 'bad');
         toast(resultPanel({ icon: '🚨', title: 'അയ്യോ പൊലീസ്!', note: p.note, tone: 'police' }));
       } else {
         refs.stamp.classList.remove('is-win');
@@ -405,10 +495,12 @@
         refs.stamp.classList.add('is-on');
         refs.ticket.classList.add('is-loss');
         const near = r.numbers.missBy === 1;
+        const nearLine = PB.pick(PB.COPY.nearMiss);
         refs.verdict.innerHTML = near
-          ? `<b>ഒരു അക്കം കൊണ്ട് പോയി!</b> നിന്റെ നമ്പർ ${r.numbers.drawn}`
+          ? `<b>${nearLine}</b> നിന്റെ നമ്പർ ${r.numbers.drawn}`
           : `നിന്റെ നമ്പർ ${r.numbers.drawn}. ഒത്തില്ല.`;
         PBFX.sound.lose();
+        if (near) shout(nearLine, 'bad');
         toast(resultPanel({ icon: '🙃', title: PB.pick(PB.COPY.lose), note: p.note }));
       }
       PBFX.sound.stamp();
@@ -542,5 +634,59 @@
     };
   }
 
-  globalThis.PBOverlay = { create, pass, send, makeReels, ornament, LAMP, COIN };
+  /* The few seconds of grace before the shutter drops. A corner card with a
+     draining ring, so you can see what you opened and brace yourself. */
+  function peek({ container, seconds, siteLabel, onSkip, onEnd }) {
+    container.classList.add('pb-root', 'pb-peekwrap');
+    const R = 20, C = 2 * Math.PI * R;
+    container.innerHTML = `
+      <div class="pb-peek" data-peek role="status" aria-live="polite">
+        <div class="pb-peek__ring">
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <circle cx="24" cy="24" r="${R}" class="pb-peek__trk"></circle>
+            <circle cx="24" cy="24" r="${R}" class="pb-peek__arc" data-arc
+                    stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="0"></circle>
+          </svg>
+          <b data-n>${seconds}</b>
+        </div>
+        <div class="pb-peek__txt">
+          <strong data-line>${PB.COPY.peekTitle}</strong>
+          <span data-site></span>
+        </div>
+        <button class="pb-peek__x" data-skip type="button">ഇപ്പോ അടച്ചോ</button>
+      </div>`;
+
+    const $ = (q) => container.querySelector(q);
+    $('[data-site]').textContent = siteLabel || '';
+    const arc = $('[data-arc]'), num = $('[data-n]'), line = $('[data-line]');
+    const box = $('[data-peek]');
+    const total = seconds * 1000;
+    const started = Date.now();
+    let lastShown = seconds;
+
+    PBFX.sound.tick();
+    const tick = setInterval(() => {
+      const left = Math.max(0, total - (Date.now() - started));
+      const n = Math.ceil(left / 1000);
+      arc.setAttribute('stroke-dashoffset', String(C * (1 - left / total)));
+      if (n !== lastShown) {
+        lastShown = n;
+        num.textContent = n;
+        box.classList.remove('is-beat');
+        void box.offsetHeight;
+        box.classList.add('is-beat');
+        PBFX.sound.tick();
+        if (n <= 2) line.textContent = PB.pick(PB.COPY.peekLines);
+      }
+      if (left <= 0) { clearInterval(tick); onEnd && onEnd(); }
+    }, 100);
+
+    $('[data-skip]').addEventListener('click', () => { clearInterval(tick); onSkip && onSkip(); });
+
+    return {
+      destroy() { clearInterval(tick); container.innerHTML = ''; container.className = ''; }
+    };
+  }
+
+  globalThis.PBOverlay = { create, pass, peek, send, makeReels, ornament, LAMP, COIN };
 })();
