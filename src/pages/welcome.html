@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+<meta charset="utf-8">
+<title>പഠിക്കാൻ ബംപർ — തുടങ്ങാം</title>
+<link rel="stylesheet" href="../content/overlay.css">
+<style>
+  :root {
+    --ml: 'Nirmala UI', 'Malayalam Sangam MN', 'Noto Sans Malayalam', 'Manjari', system-ui, sans-serif;
+    --sans: ui-sans-serif, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --cream: #F4EAD2; --mute: rgba(244,234,210,.6); --faint: rgba(244,234,210,.1);
+    --gold: #E8B94A; --gold-2: #B8811C; --gold-3: #FFE08A; --red: #E4452E; --green: #35B06F;
+    --ease: cubic-bezier(.2,.8,.2,1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(90% 50% at 50% -10%, rgba(232,185,74,.16), transparent 60%),
+      radial-gradient(120% 90% at 50% 110%, #12261E 0%, #0A1813 40%, #06100D 100%);
+    color: var(--cream);
+    font-family: var(--sans);
+    display: grid;
+    place-items: center;
+    padding: 64px 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: ''; position: fixed; left: 0; right: 0; top: 0; height: 4px;
+    background: repeating-linear-gradient(90deg, var(--gold-2) 0 6px, var(--gold-3) 6px 8px, var(--gold-2) 8px 14px, transparent 14px 18px);
+    box-shadow: 0 0 24px rgba(232,185,74,.35);
+  }
+  .page { width: 100%; max-width: 760px; position: relative; }
+  .halo {
+    position: fixed; left: 50%; top: 46%;
+    width: 1100px; height: 1100px; transform: translate(-50%,-50%);
+    opacity: .09; pointer-events: none;
+    animation: halo 30s ease-in-out infinite;
+  }
+  .halo svg { width: 100%; height: 100%; }
+  @keyframes halo { 50% { transform: translate(-50%,-50%) rotate(6deg) scale(1.04); opacity: .15; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  .brand {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--ml); font-size: 14.5px; color: var(--gold);
+    padding: 7px 13px 7px 9px; border-radius: 100px;
+    border: 1px solid rgba(232,185,74,.28); background: rgba(232,185,74,.06);
+    animation: rise .5s var(--ease) both;
+  }
+  .brand svg { width: 18px; height: 18px; filter: drop-shadow(0 0 6px rgba(232,185,74,.6)); }
+  h1 {
+    font-family: var(--ml); font-size: 56px; line-height: 1.12; font-weight: 700;
+    margin: 26px 0 14px; color: #FBF4E2; max-width: 16ch; text-wrap: balance;
+    animation: rise .6s .08s var(--ease) both;
+  }
+  h1 em { font-style: normal; color: var(--gold); text-shadow: 0 0 34px rgba(232,185,74,.4); }
+  .lede { font-family: var(--ml); font-size: 18px; color: var(--mute); max-width: 48ch; animation: rise .6s .14s var(--ease) both; }
+
+  .loop {
+    margin: 40px 0 30px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    animation: rise .6s .2s var(--ease) both;
+  }
+  .step {
+    position: relative;
+    padding: 20px 20px 22px;
+    border-radius: 16px;
+    border: 1px solid var(--faint);
+    background: linear-gradient(160deg, rgba(244,234,210,.06), rgba(244,234,210,.02));
+    transition: border-color .2s, transform .2s var(--ease), box-shadow .2s;
+    overflow: hidden;
+  }
+  .step:hover { border-color: rgba(232,185,74,.45); transform: translateY(-3px); box-shadow: 0 20px 40px -24px rgba(0,0,0,.9); }
+  .step::after {
+    content: ''; position: absolute; right: -30px; top: -30px; width: 100px; height: 100px;
+    border-radius: 50%; border: 1px dashed rgba(232,185,74,.2);
+  }
+  .step em {
+    display: inline-block; margin-bottom: 12px;
+    font-style: normal; font-size: 11px; font-weight: 700; color: #2A1A05;
+    padding: 3px 9px; border-radius: 100px;
+    background: linear-gradient(178deg, #F8D26C, var(--gold) 40%, #C58E1F);
+    font-variant-numeric: tabular-nums; letter-spacing: .08em;
+  }
+  .step:last-child em { background: linear-gradient(178deg, #F26350, var(--red) 45%, #A82A1B); color: #fff; }
+  .step:last-child { border-color: rgba(228,69,46,.3); }
+  .step h2 { font-family: var(--ml); font-size: 18.5px; font-weight: 700; margin-bottom: 6px; }
+  .step p { font-family: var(--ml); font-size: 14px; color: var(--mute); }
+  .odds { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .odd {
+    padding: 5px 10px; border-radius: 100px; border: 1px solid rgba(232,185,74,.25);
+    background: rgba(232,185,74,.06);
+    font-size: 11.5px; color: var(--mute); font-variant-numeric: tabular-nums;
+  }
+  .odd b { color: var(--cream); font-weight: 600; font-family: var(--ml); }
+  .cta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 8px; animation: rise .6s .3s var(--ease) both; }
+  .fine { font-family: var(--ml); font-size: 13px; color: rgba(244,234,210,.42); margin-top: 28px; max-width: 56ch; animation: rise .6s .36s var(--ease) both; }
+  @media (max-width: 640px) { .loop { grid-template-columns: 1fr; } h1 { font-size: 38px; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+  <div class="halo" data-halo></div>
+  <main class="page">
+    <span class="brand" data-brand>പഠിക്കാൻ ബംപർ</span>
+    <h1>പഠിക്കണോ മോനേ? <em>ആദ്യം ഭാഗ്യം നോക്ക്.</em></h1>
+    <p class="lede">സാധാരണ ആപ്പുകൾ പഠിച്ചാൽ റീൽസ് തരും. ഇത് നേരെ തിരിച്ചാണ് —
+      റീൽസ് കണ്ടിട്ട് വേണം പഠിക്കാനുള്ള അനുവാദം വാങ്ങാൻ. മിക്കപ്പോഴും കിട്ടുകയുമില്ല.</p>
+
+    <div class="loop">
+      <div class="step"><em>01</em><div>
+        <h2>പഠിക്കാൻ നോക്കുമ്പോൾ വാതിൽ അടയും</h2>
+        <p>arXiv, ChatGPT, Claude, NPTEL, കോളേജ് പോർട്ടൽ, പി.ഡി.എഫ്. — തുറന്നാൽ മൂന്ന് സെക്കൻഡ് കാണാം, പിന്നെ വാതിൽ അടയും. ആ സമയം സെറ്റിങ്ങ്സിൽ മാറ്റാം.</p>
+      </div></div>
+      <div class="step"><em>02</em><div>
+        <h2>റീൽസ് കണ്ട് കോയിൻ നേടണം</h2>
+        <p>ഇൻസ്റ്റ റീൽസോ യൂട്യൂബ് ഷോർട്സോ കാണുമ്പോൾ മാത്രം കോയിൻ വീഴും. പത്ത് സെക്കൻഡിന് ഒരു കോയിൻ.</p>
+      </div></div>
+      <div class="step"><em>03</em><div>
+        <h2>ടിക്കറ്റ് എടുത്ത് നറുക്കെടുക്കണം</h2>
+        <p>ഇരുപത് കോയിന് ഒരു ടിക്കറ്റ്. ടിക്കറ്റ് ചുരണ്ടി ഫലം അറിയണം. ബമ്പർ അടിച്ചാൽ മുപ്പത് സെക്കൻഡ്, സാന്ത്വനത്തിന് എട്ട് സെക്കൻഡ്. അടിക്കില്ല എന്നതാണ് സത്യം.</p>
+        <div class="odds" data-odds></div>
+      </div></div>
+      <div class="step"><em>04</em><div>
+        <h2>കോയിൻ തീർന്നാൽ ബ്ലേഡ് ചേട്ടൻ</h2>
+        <p>നൂറ് കോയിൻ ഇപ്പോൾ, തിരിച്ച് നൂറ്റമ്പത്. പലിശ മണിക്കൂറിൽ അഞ്ച് ശതമാനം. കടമുള്ളപ്പോൾ
+           സമ്പാദിക്കുന്നതിന്റെ പകുതി ചേട്ടൻ പിടിക്കും.</p>
+      </div></div>
+    </div>
+
+    <div class="cta">
+      <button class="pb-btn pb-btn--gold" data-start>റീൽസ് കണ്ട് തുടങ്ങാം</button>
+      <button class="pb-btn" data-close>പിന്നെ നോക്കാം</button>
+    </div>
+
+    <p class="fine">അത്യാവശ്യമുണ്ടെങ്കിൽ ഇരുപത്തഞ്ച് സെക്കൻഡ് ജാമ്യം എടുക്കാം — പക്ഷേ അത് ബ്ലേഡ് ചേട്ടന്റെ
+      കണക്കിൽ പോകും. ടൂൾബാറിലെ ഐക്കണിൽ നിന്ന് ഏതൊക്കെ സൈറ്റ് തടയണം എന്ന് മാറ്റാം.</p>
+  </main>
+
+  <script src="../shared/config.js"></script>
+  <script src="../shared/fx.js"></script>
+  <script src="../shared/overlay-ui.js"></script>
+  <script src="welcome.js"></script>
+</body>
+</html>

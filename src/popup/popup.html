@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+  <meta charset="utf-8">
+  <title>പഠിക്കാൻ ബംപർ</title>
+  <link rel="stylesheet" href="../content/overlay.css">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="shell">
+
+    <header class="bar">
+      <span class="mark" data-lamp>പഠിക്കാൻ ബംപർ</span>
+      <span class="bar__tools">
+        <button class="icon" data-sound title="ശബ്ദം">🔊</button>
+        <button class="icon" data-open-settings title="ക്രമീകരണം">⚙</button>
+      </span>
+    </header>
+
+    <main class="scroll" data-main>
+
+      <section class="hero" data-hero>
+        <p class="hero__k" data-hero-k>ബാങ്ക് ബാലൻസ്</p>
+        <p class="hero__v"><span data-hero-v>0</span><small data-hero-u>കോയിൻ</small></p>
+        <div class="meter"><i data-meter style="width:0"></i></div>
+        <p class="hero__note" data-hero-note></p>
+      </section>
+
+      <section class="panel pb-root pb-inline" data-draw>
+        <div class="panel__head">
+          <span class="panel__t">ഇന്നത്തെ നറുക്കെടുപ്പ്</span>
+          <span class="panel__m" data-serial></span>
+        </div>
+        <div class="drawrow">
+          <span class="pb-prefix" data-prefix>··</span>
+          <div class="pb-reels is-idle" data-reels></div>
+        </div>
+        <p class="verdict" data-verdict>ടിക്കറ്റ് എടുത്ത് ഭാഗ്യം നോക്ക്.</p>
+        <div class="lots" data-lots></div>
+        <div class="row" data-draw-actions></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__head">
+          <span class="panel__t">കോയിൻ ഖനി</span>
+          <span class="panel__m" data-rate></span>
+        </div>
+        <div class="row" data-mines></div>
+      </section>
+
+      <section class="panel panel--blade" data-blade hidden>
+        <div class="panel__head">
+          <span class="panel__t">ബ്ലേഡ് ചേട്ടൻ</span>
+          <span class="panel__m" data-loans></span>
+        </div>
+        <p class="debt" data-debt>0</p>
+        <p class="panel__p" data-blade-note></p>
+        <div class="row" data-blade-actions></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel__head"><span class="panel__t">കണക്കുകൾ</span></div>
+        <div class="grid" data-stats></div>
+        <div class="chips" data-history></div>
+      </section>
+
+      <p class="footnote">ഭാഗ്യം കുറവാണ്. അത് ഫീച്ചർ ആണ്, ബഗ് അല്ല.</p>
+    </main>
+
+    <aside class="sheet" data-settings hidden>
+      <header class="bar">
+        <span class="mark">ക്രമീകരണം</span>
+        <button class="icon" data-close-settings title="അടയ്ക്കുക">✕</button>
+      </header>
+      <div class="scroll">
+        <section class="panel">
+          <div class="panel__head"><span class="panel__t">എന്തൊക്കെ തടയണം</span></div>
+          <div class="toggles" data-cats></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__head"><span class="panel__t">കൂടുതൽ</span></div>
+          <div class="toggles" data-extras></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__head"><span class="panel__t">ഒളിഞ്ഞുനോട്ടം</span></div>
+          <div class="peekset" data-peek></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__head">
+            <span class="panel__t">സ്വന്തം ശബ്ദങ്ങൾ</span>
+            <span class="panel__hint">നിങ്ങളുടെ സ്വന്തം ഓഡിയോ ഫയലുകൾ</span>
+          </div>
+          <div class="clips" data-clips></div>
+          <p class="hint">
+            ഓരോ ഘട്ടത്തിനും ഒരു ഓഡിയോ ഫയൽ ചേർക്കാം (300KB വരെ). ഫയലുകൾ നിങ്ങളുടെ
+            ബ്രൗസറിൽ മാത്രം സൂക്ഷിക്കുന്നു — എവിടേക്കും അയക്കുന്നില്ല.
+          </p>
+        </section>
+
+        <section class="panel">
+          <div class="panel__head"><span class="panel__t">സ്വന്തം സൈറ്റുകൾ</span></div>
+          <div class="addrow">
+            <input class="input" data-custom placeholder="uni-portal.ac.in" spellcheck="false">
+            <button class="pb-btn pb-btn--gold" data-add>ചേർക്ക്</button>
+          </div>
+          <div class="chips" data-customlist></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__head"><span class="panel__t">ഒഴിവാക്കിയവ</span></div>
+          <div class="row"><button class="pb-btn" data-allow-current>ഈ സൈറ്റ് ഒഴിവാക്ക്</button></div>
+          <div class="chips" data-allowlist></div>
+        </section>
+
+        <section class="panel panel--blade">
+          <div class="panel__head"><span class="panel__t">എല്ലാം മായ്ക്കുക</span></div>
+          <p class="panel__p">കോയിൻ, ടിക്കറ്റ്, കടം, കണക്കുകൾ — എല്ലാം പോകും.</p>
+          <div class="row"><button class="pb-btn pb-btn--red" data-reset>റീസെറ്റ് ചെയ്യ്</button></div>
+        </section>
+      </div>
+    </aside>
+  </div>
+
+  <script src="../shared/config.js"></script>
+  <script src="../shared/fx.js"></script>
+  <script src="../shared/overlay-ui.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
