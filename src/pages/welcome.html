@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+<meta charset="utf-8">
+<title>പഠിക്കാൻ ബംപർ — തുടങ്ങാം</title>
+<link rel="stylesheet" href="../content/overlay.css">
+<style>
+  :root {
+    --ml: 'Nirmala UI', 'Malayalam Sangam MN', 'Noto Sans Malayalam', 'Manjari', system-ui, sans-serif;
+    --sans: ui-sans-serif, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --cream: #F3E7CE; --mute: rgba(243,231,206,.58); --gold: #E9B949; --red: #E2402F; --green: #2FA36B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: radial-gradient(120% 80% at 50% -10%, #3A1A1F 0%, #1C0D11 46%, #120709 100%);
+    color: var(--cream);
+    font-family: var(--sans);
+    display: grid;
+    place-items: center;
+    padding: 56px 24px;
+  }
+  .page { width: 100%; max-width: 720px; position: relative; }
+  .halo {
+    position: fixed; left: 50%; top: 46%;
+    width: 1100px; height: 1100px; transform: translate(-50%,-50%);
+    opacity: .1; pointer-events: none;
+  }
+  .halo svg { width: 100%; height: 100%; }
+  .brand { display: inline-flex; align-items: center; gap: 9px; font-family: var(--ml); font-size: 15px; color: var(--gold); }
+  .brand svg { width: 19px; height: 19px; }
+  h1 {
+    font-family: var(--ml); font-size: 52px; line-height: 1.14; font-weight: 700;
+    margin: 22px 0 12px; color: #FBF4E4; max-width: 15ch;
+  }
+  .lede { font-family: var(--ml); font-size: 18px; color: var(--mute); max-width: 46ch; }
+  .loop { margin: 38px 0 30px; display: flex; flex-direction: column; gap: 2px; }
+  .step {
+    display: grid; grid-template-columns: 30px 1fr; gap: 16px; align-items: baseline;
+    padding: 15px 0; border-top: 1px solid rgba(243,231,206,.12);
+  }
+  .step:last-child { border-bottom: 1px solid rgba(243,231,206,.12); }
+  .step em {
+    font-style: normal; font-size: 13px; color: var(--gold);
+    font-variant-numeric: tabular-nums; letter-spacing: .04em;
+  }
+  .step h2 { font-family: var(--ml); font-size: 19px; font-weight: 600; margin-bottom: 3px; }
+  .step p { font-family: var(--ml); font-size: 14.5px; color: var(--mute); max-width: 52ch; }
+  .odds {
+    margin-top: 6px; display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .odd {
+    padding: 6px 11px; border-radius: 100px; border: 1px solid rgba(243,231,206,.14);
+    font-size: 12px; color: var(--mute); font-variant-numeric: tabular-nums;
+  }
+  .odd b { color: var(--cream); font-weight: 600; font-family: var(--ml); }
+  .cta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 8px; }
+  .fine { font-family: var(--ml); font-size: 13px; color: rgba(243,231,206,.4); margin-top: 26px; max-width: 54ch; }
+</style>
+</head>
+<body>
+  <div class="halo" data-halo></div>
+  <main class="page">
+    <span class="brand" data-brand>പഠിക്കാൻ ബംപർ</span>
+    <h1>പഠിക്കണോ മോനേ? ആദ്യം ഭാഗ്യം നോക്ക്.</h1>
+    <p class="lede">സാധാരണ ആപ്പുകൾ പഠിച്ചാൽ റീൽസ് തരും. ഇത് നേരെ തിരിച്ചാണ് —
+      റീൽസ് കണ്ടിട്ട് വേണം പഠിക്കാനുള്ള അനുവാദം വാങ്ങാൻ. മിക്കപ്പോഴും കിട്ടുകയുമില്ല.</p>
+
+    <div class="loop">
+      <div class="step"><em>01</em><div>
+        <h2>പഠിക്കാൻ നോക്കുമ്പോൾ വാതിൽ അടയും</h2>
+        <p>arXiv, ChatGPT, Claude, NPTEL, കോളേജ് പോർട്ടൽ, പി.ഡി.എഫ്. — തുറന്നാൽ ഉടനെ ഈ സ്ക്രീൻ വരും.</p>
+      </div></div>
+      <div class="step"><em>02</em><div>
+        <h2>റീൽസ് കണ്ട് കോയിൻ നേടണം</h2>
+        <p>ഇൻസ്റ്റ റീൽസോ യൂട്യൂബ് ഷോർട്സോ കാണുമ്പോൾ മാത്രം കോയിൻ വീഴും. പത്ത് സെക്കൻഡിന് ഒരു കോയിൻ.</p>
+      </div></div>
+      <div class="step"><em>03</em><div>
+        <h2>ടിക്കറ്റ് എടുത്ത് നറുക്കെടുക്കണം</h2>
+        <p>ഇരുപത് കോയിന് ഒരു ടിക്കറ്റ്. അടിച്ചാൽ കുറച്ച് നേരം പഠിക്കാം. അടിക്കില്ല എന്നതാണ് സത്യം.</p>
+        <div class="odds" data-odds></div>
+      </div></div>
+      <div class="step"><em>04</em><div>
+        <h2>കോയിൻ തീർന്നാൽ ബ്ലേഡ് ചേട്ടൻ</h2>
+        <p>നൂറ് കോയിൻ ഇപ്പോൾ, തിരിച്ച് നൂറ്റമ്പത്. പലിശ മണിക്കൂറിൽ അഞ്ച് ശതമാനം. കടമുള്ളപ്പോൾ
+           സമ്പാദിക്കുന്നതിന്റെ പകുതി ചേട്ടൻ പിടിക്കും.</p>
+      </div></div>
+    </div>
+
+    <div class="cta">
+      <button class="pb-btn pb-btn--gold" data-start>റീൽസ് കണ്ട് തുടങ്ങാം</button>
+      <button class="pb-btn" data-close>പിന്നെ നോക്കാം</button>
+    </div>
+
+    <p class="fine">അത്യാവശ്യമുണ്ടെങ്കിൽ തൊണ്ണൂറ് സെക്കൻഡ് ജാമ്യം എടുക്കാം — പക്ഷേ അത് ബ്ലേഡ് ചേട്ടന്റെ
+      കണക്കിൽ പോകും. ടൂൾബാറിലെ ഐക്കണിൽ നിന്ന് ഏതൊക്കെ സൈറ്റ് തടയണം എന്ന് മാറ്റാം.</p>
+  </main>
+
+  <script src="../shared/config.js"></script>
+  <script src="../shared/fx.js"></script>
+  <script src="../shared/overlay-ui.js"></script>
+  <script src="welcome.js"></script>
+</body>
+</html>
