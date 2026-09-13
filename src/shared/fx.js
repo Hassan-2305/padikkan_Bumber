@@ -1,0 +1,162 @@
+/* Padikkan Bumper — effects.
+   Confetti is canvas; every sound is synthesised at runtime so the extension
+   ships with no media files and no remote fetches. */
+(function () {
+  if (globalThis.PBFX) return;
+
+  const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ------------------------------------------------------------- confetti */
+
+  function confetti(canvas, opts = {}) {
+    if (!canvas || reduced()) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const w = canvas.clientWidth || innerWidth;
+    const h = canvas.clientHeight || innerHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const colors = opts.colors || ['#E9B949', '#F3E7CE', '#E2402F', '#A9761B', '#FBF4E4'];
+    const count = opts.count || 130;
+    const originX = opts.x != null ? opts.x : w / 2;
+    const originY = opts.y != null ? opts.y : h * 0.42;
+    const bits = [];
+
+    for (let i = 0; i < count; i++) {
+      const a = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+      const speed = 5 + Math.random() * 11;
+      bits.push({
+        x: originX + (Math.random() - 0.5) * 120,
+        y: originY + (Math.random() - 0.5) * 40,
+        vx: Math.cos(a) * speed * (0.6 + Math.random() * 0.8),
+        vy: Math.sin(a) * speed - 5 - Math.random() * 5,
+        w: 5 + Math.random() * 7,
+        h: 8 + Math.random() * 12,
+        rot: Math.random() * Math.PI,
+        vr: (Math.random() - 0.5) * 0.32,
+        color: colors[(Math.random() * colors.length) | 0],
+        life: 1
+      });
+    }
+
+    let raf;
+    const start = performance.now();
+    function frame(now) {
+      const t = now - start;
+      ctx.clearRect(0, 0, w, h);
+      let alive = false;
+      for (const b of bits) {
+        b.vy += 0.34;            // gravity
+        b.vx *= 0.992;
+        b.x += b.vx;
+        b.y += b.vy;
+        b.rot += b.vr;
+        if (t > 1500) b.life -= 0.018;
+        if (b.life <= 0 || b.y > h + 60) continue;
+        alive = true;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, b.life);
+        ctx.translate(b.x, b.y);
+        ctx.rotate(b.rot);
+        ctx.fillStyle = b.color;
+        ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h * Math.abs(Math.cos(b.rot * 1.6)));
+        ctx.restore();
+      }
+      if (alive && t < 5200) raf = requestAnimationFrame(frame);
+      else ctx.clearRect(0, 0, w, h);
+    }
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }
+
+  /* ---------------------------------------------------------------- sound */
+
+  let actx = null;
+  let enabled = true;
+
+  function ctx() {
+    if (!actx) {
+      const AC = globalThis.AudioContext || globalThis.webkitAudioContext;
+      if (!AC) return null;
+      actx = new AC();
+    }
+    if (actx.state === 'suspended') actx.resume().catch(() => {});
+    return actx;
+  }
+
+  function tone({ freq = 440, type = 'sine', dur = 0.16, gain = 0.06, at = 0, slide = null, decay = 0.1 }) {
+    const a = ctx();
+    if (!a || !enabled) return;
+    const t0 = a.currentTime + at;
+    const osc = a.createOscillator();
+    const g = a.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(40, slide), t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur + decay);
+    osc.connect(g).connect(a.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + decay + 0.02);
+  }
+
+  function thump(at = 0, gain = 0.12) {
+    const a = ctx();
+    if (!a || !enabled) return;
+    const t0 = a.currentTime + at;
+    const len = Math.floor(a.sampleRate * 0.22);
+    const buf = a.createBuffer(1, len, a.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.4);
+    }
+    const src = a.createBufferSource();
+    src.buffer = buf;
+    const filt = a.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.value = 180;
+    filt.Q.value = 1.1;
+    const g = a.createGain();
+    g.gain.value = gain;
+    src.connect(filt).connect(g).connect(a.destination);
+    src.start(t0);
+    tone({ freq: 120, type: 'sine', dur: 0.1, gain: gain * 0.9, slide: 52, at, decay: 0.06 });
+  }
+
+  const sound = {
+    set enabled(v) { enabled = !!v; },
+    get enabled() { return enabled; },
+
+    coin() { tone({ freq: 1180, type: 'triangle', dur: 0.05, gain: 0.045 });
+             tone({ freq: 1760, type: 'triangle', dur: 0.07, gain: 0.035, at: 0.05 }); },
+
+    tick() { tone({ freq: 900, type: 'square', dur: 0.012, gain: 0.014 }); },
+
+    spin() { for (let i = 0; i < 22; i++) tone({ freq: 620 + (i % 3) * 120, type: 'square', dur: 0.01, gain: 0.012, at: i * 0.055 }); },
+
+    stamp() { thump(0, 0.14); },
+
+    lose() { thump(0, 0.1);
+             tone({ freq: 320, type: 'sawtooth', dur: 0.24, gain: 0.045, slide: 110, at: 0.05 }); },
+
+    win(big) {
+      const notes = big ? [523, 659, 784, 1047, 1319] : [523, 659, 784];
+      notes.forEach((f, i) => tone({ freq: f, type: 'triangle', dur: 0.13, gain: 0.06, at: i * 0.085 }));
+      thump(0, 0.1);
+      if (big) notes.forEach((f, i) => tone({ freq: f * 2, type: 'sine', dur: 0.2, gain: 0.03, at: 0.45 + i * 0.07 }));
+    },
+
+    siren() {
+      for (let i = 0; i < 4; i++) {
+        tone({ freq: 720, type: 'sawtooth', dur: 0.26, gain: 0.05, slide: 1180, at: i * 0.3 });
+      }
+    },
+
+    knock() { thump(0, 0.16); thump(0.22, 0.16); thump(0.42, 0.16); }
+  };
+
+  globalThis.PBFX = { confetti, sound };
+})();
