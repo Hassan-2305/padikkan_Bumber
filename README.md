@@ -61,14 +61,14 @@ node test/all.js
 For Software:
 
 # Screenshots (Add at least 3)
-![Screenshot1](Add screenshot 1 here with proper name)
-*Add caption explaining what this shows*
+<img width="1280" height="640" alt="git (1)" src="https://raw.githubusercontent.com/Hassan-2305/padikkan_Bumber/refs/heads/main/screenshots/starting_extension.jpeg" />
+*Starting extension*
 
-![Screenshot2](Add screenshot 2 here with proper name)
-*Add caption explaining what this shows*
+<img width="1280" height="640" alt="git (1)" src="https://raw.githubusercontent.com/Hassan-2305/padikkan_Bumber/refs/heads/main/screenshots/main_pipeline.jpeg" />
+*Shows what the extension does *
 
-![Screenshot3](Add screenshot 3 here with proper name)
-*Add caption explaining what this shows*
+<img width="1280" height="640" alt="git (1)" src="https://raw.githubusercontent.com/Hassan-2305/padikkan_Bumber/refs/heads/main/screenshots/insta_timer.jpeg" />
+*Earn coins visiting instagram and scrolling reels*
 
 # Diagrams
 # Technical Architecture
@@ -84,13 +84,13 @@ The extension uses Manifest V3 with:
   
 ### Project Demo
 # Video
-[Add your demo video link here]
-*Explain what the video demonstrates*
+https://drive.google.com/file/d/1K9xjGyusZNHo0AVNtFpVqP-142YeeHfm/view?usp=drive_link
+*Shows the basic working of the project. When the user opens Wikipedia to do work, the extension kicks and blocks it. Now to do some actual work, the user has to buy a lottery ticket and gamble. If they win, they'll be able to work. Otherwise, they can't. They can buy these lottery tickets using coins, and these coins can be acquired by doomscrolling reels on Instagram*
 
 
 ## Team Contributions
-- Mohammed Hassan: [Specific contributions]
-- Midhun Raaj: [Specific contributions]
+- Mohammed Hassan: Backend Development
+- Midhun Raaj: Frontedn Development
 
 ---
 Made with ❤️ at TinkerHub Useless Projects 
