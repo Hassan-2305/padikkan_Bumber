@@ -1,8 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Padikkan Bumper — പഠിക്കാൻ ബംപർ",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "പഠിക്കണോ മോനേ? റീൽസ് കണ്ട് കോയിൻ നേടി, ടിക്കറ്റ് എടുത്ത്, ഭാഗ്യമുണ്ടെങ്കിൽ പഠിക്കാം.",
+
+  "action": {
+    "default_title": "പഠിക്കാൻ ബംപർ",
+    "default_popup": "src/popup/popup.html"
+  },
 
   "background": {
     "service_worker": "src/background/service-worker.js"
