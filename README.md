@@ -1,5 +1,7 @@
 # പഠിക്കാൻ ബംപർ — Padikkan Bumper
 
+*v1.1 — now with a peek delay, scratch cards, and your own sound clips.*
+
 A Chrome extension that will not let you study until you have watched enough Reels.
 
 Every productivity blocker makes you earn your distractions. This one inverts the
@@ -30,7 +32,12 @@ Requires Chrome 102+.
 
 ## The loop
 
-**1. You try to study.** The page freezes, media pauses, and the ticket appears.
+**1. You try to study.** You get a few seconds of the real page first — a
+countdown card appears in the corner so you can see what you actually opened —
+and then the shutter drops, the page freezes and media pauses. The peek is 3
+seconds by default, adjustable from 1 to 15 in settings, and there is a skip
+button if you would rather get it over with. A pass expiring under you blocks
+instantly, since you are already looking at the page.
 Blocked by default: AI chatbots, research and paper sites, MOOC platforms, coding
 references, note apps, college portals, anything on `.ac.in` / `.edu` / `.ac.uk`
 and similar, plus any `.pdf`. Every category is toggleable and you can allowlist
@@ -44,17 +51,24 @@ nothing.
 
 **3. You buy a ticket.** 20 coins. Your serial is printed on the ticket.
 
-**4. You draw.** Six reels spin. Most of the time you lose, and 55% of losses
-land exactly one digit away from the winning number, purely to hurt.
+**4. You scratch.** Foil covers the ticket, the reels spin behind it, and you
+have to scratch it off with the mouse to find out. If you walk away it gives up
+and reveals after 12 seconds — nobody gets trapped behind foil. Turn it off in
+settings if you would rather have the result straight away.
+
+Most of the time you lose, and 55% of losses land exactly one digit away from
+the winning number, purely to hurt.
 
 | Result | Chance | You get |
 |---|---|---|
-| ബമ്പർ | 0.5% | 60 min + 200 coins |
-| ഒന്നാം സമ്മാനം | 2% | 25 min + 40 coins |
-| രണ്ടാം സമ്മാനം | 5% | 10 min |
-| ആശ്വാസ സമ്മാനം | 10% | 3 min |
+| ബമ്പർ | 0.5% | 30 seconds + 200 coins |
+| ഒന്നാം സമ്മാനം | 2% | 20 seconds + 40 coins |
+| രണ്ടാം സമ്മാനം | 5% | 12 seconds |
+| ആശ്വാസ സമ്മാനം | 10% | 8 seconds |
 | 🚨 റെയ്ഡ് | 3% | police seize 35% of your coins |
 | ഒന്നുമില്ല | 79.5% | nothing |
+
+Yes, the bumper prize is thirty seconds. That is the joke.
 
 Winning stacks: draw again while a pass is live and the minutes add on. The
 badge shows the time left, and a floating green chip counts down on the page.
@@ -64,9 +78,10 @@ badge shows the time left, and a floating green chip counts down on the page.
 coin you earn** until it is cleared. Past 400 he starts turning up on your Reels
 tab in person. Past five loans he stops lending.
 
-**6. ജാമ്യം (bail).** Genuinely need the page right now? One 90-second emergency
-pass, once an hour, charged to Blade as 150 debt. A joke blocker still needs a
-real exit.
+**6. ജാമ്യം (bail).** Genuinely need the page right now? One 25-second emergency
+pass, once an hour, charged to Blade as 150 debt. It is deliberately capped at
+or below the bumper prize — a safety valve should not be better than winning.
+There is a test asserting exactly that.
 
 ---
 
@@ -74,8 +89,23 @@ real exit.
 
 Click the toolbar icon. You get your balance, a draw panel, the coin mine,
 Blade, stats and history. The gear opens: per-category toggles, PDF blocking,
-academic-domain matching, sound, custom blocked sites, an allowlist, and a
-two-press reset.
+academic-domain matching, sound, meme mode, scratch mode, the peek-delay slider,
+your own sound clips, custom blocked sites, an allowlist, and a two-press reset.
+
+### Your own sounds
+
+There are eight slots — block, spin, win, bumper, lose, police, blade, coin —
+and you can drop an audio file into any of them from the settings sheet, preview
+it, or clear it. Up to 300KB each.
+
+**I did not ship any movie audio or dialogue with this.** Film clips and film
+dialogue are somebody else's copyright, so the extension ships only original
+lines and synthesised sound. If you want a particular dialogue playing when the
+police raid your ticket, add the file yourself.
+
+Clips are stored in your own browser and are played through WebAudio rather than
+an `<audio>` element, deliberately — a strict site's `media-src` policy would
+otherwise silence them on exactly the pages where the overlay appears.
 
 ---
 
@@ -95,7 +125,7 @@ src/content/overlay.css            the whole design system
 src/popup/                         dashboard
 src/pages/                         PDF block screen, welcome page
 icons/                             nilavilakku, drawn to PNG
-test/                              194 assertions, `node test/all.js`
+test/                              235 assertions, `node test/all.js`
 ```
 
 The service worker owns state; every surface messages it and reads
@@ -115,7 +145,7 @@ five PNGs.
 node test/all.js
 ```
 
-194 assertions over five suites: the economy and site matching, the block
+235 assertions over five suites: the economy and site matching, the block
 overlay, the popup, the blocker content script and the coin mine. The UI suites
 run the real code against a small hand-written DOM (`test/dom.js`) and a stubbed
 `chrome` (`test/harness.js`), since there is no browser in the build
@@ -125,6 +155,8 @@ environment. The odds suite runs 60,000 draws and checks every prize converges.
 
 ## Known limitations
 
+- **PDF blocks do not get the peek.** PDFs are handled by redirecting the
+  navigation, so there is no page to show you for three seconds first.
 - **A pass expiring while a PDF is open will not re-block it.** Chrome refuses
   to run content scripts inside its built-in PDF viewer, so PDFs are handled by
   redirecting the navigation to a block page instead. Once released, that tab is
