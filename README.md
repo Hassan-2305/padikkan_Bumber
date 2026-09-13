@@ -85,6 +85,7 @@ The extension uses Manifest V3 with:
 ### Project Demo
 # Video
 https://drive.google.com/file/d/1K9xjGyusZNHo0AVNtFpVqP-142YeeHfm/view?usp=drive_link
+
 *Shows the basic working of the project. When the user opens Wikipedia to do work, the extension kicks and blocks it. Now to do some actual work, the user has to buy a lottery ticket and gamble. If they win, they'll be able to work. Otherwise, they can't. They can buy these lottery tickets using coins, and these coins can be acquired by doomscrolling reels on Instagram*
 
 
