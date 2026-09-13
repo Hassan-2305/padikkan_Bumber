@@ -14,7 +14,10 @@
   let host = null;
   let ui = null;
   let passUi = null;
-  let mode = 'none';           // none | blocked | pass
+  let peekUi = null;
+  let mode = 'none';           // none | peek | blocked | pass
+  let peekTimer = null;
+  let peeked = false;          // one peek per document, not per SPA route
   let lastUrl = location.href;
   let scrollLock = null;
 
@@ -82,6 +85,9 @@
   }
 
   function teardown() {
+    clearTimeout(peekTimer); peekTimer = null;
+    peekUi && peekUi.destroy();
+    peekUi = null;
     ui && ui.destroy();
     passUi && passUi.destroy();
     ui = passUi = null;
@@ -93,8 +99,40 @@
 
   /* --------------------------------------------------------------- screens */
 
-  async function showBlock() {
+  /* You get a few seconds of the real page first — otherwise a blocked tab is
+     just a black rectangle and you never find out what you opened. */
+  async function showPeek() {
+    const secs = Math.max(
+      PB.ECONOMY.PEEK_MIN,
+      Math.min(PB.ECONOMY.PEEK_MAX,
+               Number(state.settings && state.settings.peekSeconds) || PB.ECONOMY.PEEK_SECONDS)
+    );
+    peeked = true;
+    mode = 'peek';
+    const root = shadow();
+    // corner widget: the page underneath stays readable and clickable
+    host.style.cssText = 'all:initial;position:fixed;inset:auto;z-index:2147483647;';
+    const style = document.createElement('style');
+    style.textContent = await loadCss();
+    const mountPoint = document.createElement('div');
+    root.append(style, mountPoint);
+
+    peekUi = PBOverlay.peek({
+      container: mountPoint,
+      seconds: secs,
+      siteLabel: PB.siteLabel(location.href),
+      onSkip: () => { clearTimeout(peekTimer); teardown(); showBlock(); },
+      onEnd: () => { teardown(); showBlock(true); }
+    });
+
+    peekTimer = setTimeout(() => {
+      if (mode === 'peek') { teardown(); showBlock(true); }
+    }, secs * 1000);
+  }
+
+  async function showBlock(shutter) {
     if (mode === 'blocked' && host && host.isConnected) { ui && ui.update(state); return; }
+    clearTimeout(peekTimer); peekTimer = null;
     teardown();
     mode = 'blocked';
     freeze();
@@ -108,6 +146,7 @@
     ui = PBOverlay.create({
       container: mountPoint,
       state,
+      shutter: !!shutter,
       siteLabel: PB.siteLabel(location.href),
       onRelease: () => { teardown(); showPass(); }
     });
@@ -150,7 +189,11 @@
 
     if (state.accessUntil > Date.now()) { showPass(); return; }
 
-    await showBlock();
+    // First time this page is caught, let them actually see it. When a pass
+    // expires under them they are already looking at it, so drop the shutter.
+    if (!expired && !peeked && mode === 'none') { showPeek(); return; }
+
+    await showBlock(true);
     if (expired && ui) {
       // The pass ran out while they were mid-sentence. Say so.
       const t = ui && ui.state;
@@ -185,6 +228,7 @@
   /* Single-page apps rewrite the DOM wholesale; if the overlay gets swept out
      with it, put it straight back. */
   function guard() {
+    if (mode === 'peek') return;
     if (mode === 'blocked' && (!host || !host.isConnected)) {
       host = null;
       showBlock();
@@ -199,6 +243,8 @@
     if (mode === 'blocked') {
       if (state.accessUntil > Date.now()) { teardown(); showPass(); }
       else ui && ui.update(state);
+    } else if (mode === 'peek') {
+      if (state.accessUntil > Date.now()) { teardown(); showPass(); }
     } else if (mode === 'pass') {
       if (state.accessUntil <= Date.now()) { teardown(); evaluate(true); }
       else passUi && passUi.update(state);
