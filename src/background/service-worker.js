@@ -41,7 +41,10 @@ const DEFAULT_STATE = {
     blockPdfs: true,
     blockAcademicTlds: true,
     preferredMine: 'instagram',
-    sound: true
+    sound: true,
+    peekSeconds: PB.ECONOMY.PEEK_SECONDS,   // how long you get to see the page
+    memeMode: true,                          // loud reactions and shouted lines
+    soundPack: {}                            // event -> user-supplied clip id
   },
   installedAt: 0
 };
@@ -187,10 +190,10 @@ function makeNumbers(won, held) {
   return { winning: winLetters + ' ' + arr.join(''), drawn, missBy: changes };
 }
 
-function grantAccess(s, minutes) {
+function grantAccess(s, seconds) {
   const base = Math.max(s.accessUntil, Date.now());
-  s.accessUntil = base + minutes * 60000;
-  s.stats.studySecondsWon += minutes * 60;
+  s.accessUntil = base + seconds * 1000;
+  s.stats.studySecondsWon += seconds;
   scheduleExpiry(s);
 }
 
@@ -249,14 +252,14 @@ const handlers = {
       s.stats.plays += 1;
 
       const prize = rollPrize();
-      const won = prize.minutes > 0;
+      const won = prize.seconds > 0;
       const nums = makeNumbers(won, serial);
       let seized = 0;
 
       if (won) {
         s.stats.wins += 1;
         s.stats.streakLosses = 0;
-        grantAccess(s, prize.minutes);
+        grantAccess(s, prize.seconds);
         if (prize.coins) { s.coins += prize.coins; s.stats.coinsEarned += prize.coins; }
         const rank = PRIZES.findIndex((p) => p.id === prize.id);
         const bestRank = s.stats.bestPrize ? PRIZES.findIndex((p) => p.id === s.stats.bestPrize) : 99;
@@ -274,7 +277,7 @@ const handlers = {
       s.history.unshift({
         t: Date.now(),
         prize: prize.id,
-        minutes: prize.minutes,
+        seconds: prize.seconds,
         serial: nums.drawn,
         winning: nums.winning
       });
@@ -325,7 +328,7 @@ const handlers = {
       s.debt += ECONOMY.BAIL_DEBT;
       s.loans += 1;
       s.lastInterestAt = Date.now();
-      grantAccess(s, ECONOMY.BAIL_SECONDS / 60);
+      grantAccess(s, ECONOMY.BAIL_SECONDS);
       return { ok: true, seconds: ECONOMY.BAIL_SECONDS, debt: s.debt };
     });
   },
@@ -344,6 +347,12 @@ const handlers = {
   async settings({ patch }) {
     return mutate((s) => {
       s.settings = { ...s.settings, ...patch };
+      if ('peekSeconds' in (patch || {})) {
+        const n = Math.round(Number(s.settings.peekSeconds));
+        s.settings.peekSeconds = Number.isFinite(n)
+          ? Math.max(ECONOMY.PEEK_MIN, Math.min(ECONOMY.PEEK_MAX, n))
+          : ECONOMY.PEEK_SECONDS;
+      }
       return { ok: true, settings: s.settings };
     });
   },
